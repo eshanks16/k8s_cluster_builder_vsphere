@@ -1,0 +1,25 @@
+---
+- name: update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: perform a dist-upgrade
+  apt:
+    upgrade: dist
+  when: common_upgrade_base | bool
+
+- name: install baseline dependencies
+  apt:
+    name: "{{ common_debs }}"
+    state: latest
+
+- name: install extra debs
+  apt:
+    name: "{{ common_extra_debs }}"
+    state: latest
+
+- name: install specific version of urllib3
+  pip: 
+    name: urllib3==1.23
+  when: ansible_distribution_version == "16.04"

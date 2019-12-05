@@ -1,0 +1,20 @@
+---
+- name: Update vSphere config file
+  ini_file:
+    path: /etc/kubernetes/{{cloud_provider}}.conf
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  with_items:
+    - { section: "Global", option: user, value: '"{{ vs_user }}"' }
+    - { section: "Global", option: password, value: '"{{ vs_password }}"' }
+    - { section: "Global", option: port, value: '"{{ vs_port }}"' }
+    - { section: "Global", option: insecure-flag, value: '"{{ vs_insecure_flag }}"' }
+    - { section: 'VirtualCenter "{{ vs_server }}"', option: datacenters, value: '"{{ vs_datacenters }}"' }
+    - { section: "Workspace", option: server, value: '"{{ vs_server }}"' }
+    - { section: "Workspace", option: datacenter, value: '"{{ vs_datacenter }}"' }
+    - { section: "Workspace", option: default-datastore, value: '"{{ vs_default_datastore }}"' }
+    - { section: "Workspace", option: resourcepool-path, value: '"{{ vs_resourcepool_path }}"' }
+    - { section: "Workspace", option: folder, value: '"{{ vs_folder }}"' }
+    - { section: "Disk", option: scsicontrollertype, value: '"{{ vs_scsicontrollertype }}"' }
+    - { section: "Network", option: public-network, value: '"{{ vs_public_network }}"' }

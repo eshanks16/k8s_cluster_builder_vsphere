@@ -1,0 +1,89 @@
+---
+#User Info for installations
+kubernetes_users:
+- { user: kubeuser, group: kubeuser, home: /home/kubeuser }         #User kubeadm will run under
+
+#Instance Configurations 
+docker_debian_version: '5:18.09.5~3-0~ubuntu-{{ ansible_distribution_release | lower }}'    #version of docker for debian installations
+docker_redhat_version: '18.09.7-3.el7'              #version of docker to install on redhat installations
+
+#etcd configuration items
+etcd_interface: ens160                              #nic etcd is advertised on
+etcd_version: v3.2.18                               #etcd version to use
+
+#Cloud Provider
+cloud_provider: "vsphere" #aws or vsphere
+
+#vsphere cloud provider configuration items - required if cloud_provider=vsphere
+vs_user: "user@domain.local"                        #vCenter Username
+vs_password: "Password123"                          #vCenter Password for user
+vs_port: "443"                                      #vCenter Port
+vs_insecure_flag: "1"                               #insecure certificates allowed=1
+vs_datacenters: "DC1"                               #vCenter Datacenter on which k8s node VMs are built
+vs_server: "vcenter1.domain.local"                  #vCenter server FQDN
+vs_datacenter: "DC1"                                #vCenter DataCenter associated with the current vCenter Server above
+vs_default_datastore: "vsanDatastore"               #Datastore used for provisioning volumes from stroage classes
+vs_resourcepool_path: "myCluster/Resources"         #VMware Resource pool where kubernetes nodes will reside
+vs_folder: "kubernetes"                             #VM folder where kubernetes nodes will reside
+vs_scsicontrollertype: pvscsi                       #Kubernetes node scsi controller type
+vs_public_network: "vms"                            #portgroup for kubernetes nodes
+
+#Kubernetes Configuration Options
+kubernetes_version: v1.16.3 
+kubeadm_version: 1.16.3
+kubernetes_full_version: '1.16.3-00'
+kubernetes_cni_plugin: calico                   #Available options: calico, flannel, canal
+kubernetes_cni_version: '0.7.5-00'  
+kubernetes_common_api_fqdn: api.domain.local   #Load Balancer URL - Must be pre-created with appropriate Health Checks
+kubernetes_common_api_ip: 10.10.50.170
+kubernetes_cluster_label: mycluster
+
+#Common kubeadm configuration settings for all nodes
+#Enter or remove items below this line as needed
+kubernetes_common_kubeadm_config:   #Do not remove this line
+    apiVersion: kubeadm.k8s.io/v1beta1                                      
+    kind: ClusterConfiguration
+    kubernetesVersion: "{{kubernetes_version }}"
+    controlPlaneEndpoint: "{{ kubernetes_common_api_fqdn }}"                #external load balancer DNS name for VIP
+    apiServer:
+        ExtraArgs:
+            "endpoint-reconciler-type": "lease"
+            "cloud-provider": "{{ cloud_provider }}"                        #for vSphere Cloud Provider Config
+            "cloud-config": "/etc/kubernetes/{{ cloud_provider }}.conf"     #for vSphere Cloud Provider Config
+        extraVolumes:
+        -   name: "cloud"                                                   #for vSphere Cloud Provider Config
+            hostPath: "/etc/kubernetes/{{ cloud_provider }}.conf"           #for vSphere Cloud Provider Config
+            mountPath: "/etc/kubernetes/{{ cloud_provider }}.conf"          #for vSphere Cloud Provider Config
+    controllerManager:
+        extraArgs:
+            "cloud-provider": "{{ cloud_provider }}"                        #for vSphere Cloud Provider Config
+            "cloud-config": "/etc/kubernetes/{{ cloud_provider }}.conf"     #for vSphere Cloud Provider Config
+        extraVolumes:
+        -   name: "cloud"
+            hostPath: "/etc/kubernetes/{{ cloud_provider }}.conf"           #for vSphere Cloud Provider Config
+            mountPath: "/etc/kubernetes/{{ cloud_provider }}.conf"          #for vSphere Cloud Provider Config
+    apiServerCertSANs: "{{ kubernetes_common_api_ip | kube_lookup_hostname(kubernetes_common_api_fqdn, True) }}"
+    etcd:
+        external:
+            endpoints: "{{ etcd_client_endpoints }}"
+    networking:
+        podSubnet: "172.16.0.0/16"
+        serviceSubnet: "192.168.0.0/16"
+
+#kubelet configuration options
+kubernetes_common_kubelet_extra_args: 
+    cloud-provider: "{{ cloud_provider }}"
+    cloud-config: "/etc/kubernetes/{{ cloud_provider }}.conf"
+kubernetes_common_kubelet_env_vars: {}
+kubernetes_common_kubelet_config: 
+    container-log-max-size: 10Mi
+
+# Docker Daemon configuration
+docker_ce_daemon_options:
+    exec-opts: [ "native.cgroupdriver=systemd" ]
+    log-driver: json-file
+    log-opts:
+        max-size: "100m"
+        max-file: "7"
+    storage-driver: overlay2
+    storage-opts: [ "overlay2.override_kernel_check=true" ]

@@ -1,0 +1,6 @@
+---
+- name: Update vsphere conf Global Variables
+  hosts: k8s_masters
+  become: yes
+  roles:
+    - vsphere

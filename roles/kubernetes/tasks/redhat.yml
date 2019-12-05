@@ -1,0 +1,19 @@
+---
+- name: add the kubernetes yum repo key
+  yum_repository:
+    name: kubernetes
+    description: the kubernetes yum repo
+    baseurl: "{{ kubernetes_yum_baseurl }}"
+    gpgcheck: True
+    gpgkey: "{{ kubernetes_yum_gpgkey }}"
+
+- name: install the kubernetes yum packages
+  yum:
+    allow_downgrade: True
+    name:
+      - "kubelet-{{ kubernetes_version | kube_platform_version('redhat') }}"
+      - "kubeadm-{{ kubernetes_version | kube_platform_version('redhat') }}"
+      - "kubectl-{{ kubernetes_version | kube_platform_version('redhat') }}"
+      - "kubernetes-cni-{{kubernetes_cni_version | kube_platform_version('redhat')}}"
+  retries: 5
+  delay: 5

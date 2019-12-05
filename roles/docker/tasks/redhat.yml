@@ -1,0 +1,31 @@
+---
+
+- name: Docker Version
+  debug:
+    msg: Docker Version is {{ docker_redhat_version }}
+
+- name: add docker dependencies
+  yum:
+    name:
+      - device-mapper-persistent-data
+      - lvm2
+
+- name: add docker repo
+  yum_repository:
+    name: docker
+    description: Docker YUM repo
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable/
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    gpgcheck: true
+    state: present
+
+- name: install Docker binaries
+  yum:
+    name:
+    - docker-ce-{{docker_redhat_version}}
+
+- name: start docker service
+  service:
+    name: docker
+    enabled: true
+    state: started

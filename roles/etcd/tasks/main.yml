@@ -1,0 +1,57 @@
+---
+- name: download and extract etcd binaries
+  unarchive:
+    remote_src: True
+    src: "{{ etcd_release_url }}"
+    dest: /tmp
+    creates: /usr/local/bin/etcd
+  register: etcd_downloaded
+
+- name: move binaries into path
+  copy:
+    remote_src: True
+    src: "/tmp/etcd-{{ etcd_version }}-linux-amd64/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+  with_items:
+    - etcd
+    - etcdctl
+  when: etcd_downloaded is changed
+
+- name: set permissions on etcd binaries
+  file:
+    dest: "/usr/local/bin/{{ item }}"
+    mode: 0755
+    state: file
+  with_items:
+    - etcd
+    - etcdctl
+
+- name: create data directory
+  file:
+    dest: /var/lib/etcd
+    state: directory
+
+- name: open etcd ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: True
+  with_items:
+  - "2379/tcp"
+  - "2380/tcp"
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: etcd systemd template
+  template:
+    src: etc/systemd/system/etcd.service
+    dest: /etc/systemd/system/etcd.service
+  tags:
+    - etcd2
+
+- name: enable and start the service
+  systemd:
+    name: etcd
+    daemon_reload: True
+    state: started
+    enabled: True

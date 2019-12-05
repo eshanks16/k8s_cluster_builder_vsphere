@@ -1,0 +1,30 @@
+---
+- name: add epel repo
+  yum:
+    name: "{{ common_redhat_epel_rpm }}"
+
+- name: perform a yum update
+  yum:
+    name: '*'
+    state: latest
+  when: common_upgrade_base | bool
+
+- name: install baseline dependencies
+  yum:
+    name: "{{ common_rpms }}"
+
+- name: install extra rpms
+  yum:
+    name: "{{ common_extra_rpms }}"
+
+- name: load br_netfilter kernel module
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: ensure firewalld is running
+  systemd:
+    name: firewalld
+    daemon_reload: True
+    enabled: yes
+    state: started

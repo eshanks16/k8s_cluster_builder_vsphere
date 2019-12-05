@@ -1,0 +1,112 @@
+---
+- import_tasks: debian.yml
+  when: ansible_os_family == "Debian"
+
+- import_tasks: redhat.yml
+  when: ansible_os_family == "RedHat"
+
+- name: set ipv4 routing
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: "1"
+    sysctl_set: yes
+    state: present
+    reload: yes
+
+- name: ensure that the kubelet is running
+  service:
+    name: kubelet
+    state: started
+    enabled: true
+
+# Required by the docker_image ansible module
+- name: install docker-py
+  pip:
+    name: docker-py
+  when: kubernetes_enable_cached_images|bool and kubernetes_cached_images|length > 0
+
+- name: cache docker images for kubeadm
+  docker_image:
+    name: "{{ item }}"
+  with_items: kubernetes_cached_images
+  when: kubernetes_enable_cached_images|bool and kubernetes_cached_images|length > 0
+
+- name: comment out any swap in fstab
+  lineinfile:
+    path: '/etc/fstab'
+    regexp: '^(.*\s+none\s+swap.*)'
+    line: '# removed by wardroom \1'
+    backrefs: yes
+  when: kubernetes_common_disable_swap|bool == True
+
+- name: disable swap
+  command: swapoff -a
+  when: kubernetes_common_disable_swap|bool == True
+
+- name: set kubernetes_node_ip fact
+  set_fact:
+    kubernetes_node_ip: "{{ hostvars[inventory_hostname]['ansible_'~item]['ipv4']['address'] }}"
+  with_items:
+    - "{{ kubernetes_common_primary_interface }}"
+  when: kubernetes_common_primary_interface is defined
+
+- name: ensure firewalld is running
+  systemd:
+    name: firewalld
+    state: started
+  when: ansible_os_family == "RedHat"
+
+- name: open kubelet ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: True
+  with_items:
+  - "30000-32767/tcp"
+  - "10250-10255/tcp"
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: drop kubeadm template
+  template:
+    src: etc/kubernetes/kubeadm.conf
+    dest: /etc/kubernetes/kubeadm.conf
+
+- import_tasks: vsphere.yml
+  when: cloud_provider == "vsphere"
+
+- name: create kubelet config directory
+  file:
+    dest: /etc/systemd/system/kubelet.service.d
+    state: directory
+
+- name: write kubelet configuration
+  template:
+    dest: /var/lib/kubelet/config.yml
+    src: var/lib/kubelet/config.yml
+  when: kubernetes_common_kubelet_config | bool
+
+- name: drop extra args kubelet config
+  template:
+    backup: True
+    dest: "/etc/{{ 'default' if ansible_os_family == 'Debian' else 'sysconfig' }}/kubelet"
+    src: etc/default/kubelet
+  notify:
+    - restart kubelet
+  when: kubernetes_common_primary_interface is defined or kubernetes_common_kubelet_extra_args is defined or kubernetes_common_kubelet_env_vars is defined
+
+- name: delete old kubelet extra args unit file
+  file:
+    dest: /etc/systemd/system/kubelet.service.d/09-extra-args.conf
+    state: absent
+  notify:
+    - restart kubelet
+
+- name: write kubelet configuration
+  template:
+    dest: /var/lib/kubelet/config.yaml
+    src: var/lib/kubelet/config.yaml
+  when: kubernetes_common_kubelet_config | bool
+
+- name: flush handlers
+  meta: flush_handlers

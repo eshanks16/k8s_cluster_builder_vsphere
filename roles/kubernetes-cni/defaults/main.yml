@@ -1,0 +1,15 @@
+---
+#Calico Config Info
+kubernetes_cni_calico_rbac_url: "https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml"
+kubernetes_cni_calico_manifest_url: https://docs.projectcalico.org/v3.9/manifests/calico.yaml
+kubernetes_cni_calico_install_calicoctl: False
+kubernetes_cni_calico_calicoctl_url: "https://github.com/projectcalico/calicoctl/releases/download/v3.4.0/calicoctl"
+kubernetes_cni_calico_manifest_mods: []
+
+#Flannel Config Info
+kubernetes_cni_flannel_manifest_url: "https://raw.githubusercontent.com/coreos/flannel/v0.10.0/Documentation/kube-flannel.yml"
+
+#Canal Config Info
+kubernetes_cni_canal_rbac_manifest_url: "https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/canal/rbac.yaml"
+kubernetes_cni_canal_manifest_url: "https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/canal/canal.yaml"
+kubernetes_cni_canal_manifest_mods: []

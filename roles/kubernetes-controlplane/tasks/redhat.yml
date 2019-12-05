@@ -1,0 +1,7 @@
+---
+- name: open api server port
+  firewalld:
+    port: 6443/tcp
+    permanent: yes
+    state: enabled
+    immediate: True

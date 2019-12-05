@@ -1,0 +1,37 @@
+---
+- import_playbook: pre.yml
+
+- name: basic config
+  hosts: all
+  become: yes
+  roles: 
+    - common
+    - docker
+    
+- name: etcd
+  hosts: etcd
+  become: yes
+  roles:
+    - etcd
+
+- name: kubernetes
+  hosts: all
+  become: yes
+  roles:
+    - kubernetes
+
+- name: create kubernetes control plane nodes
+  hosts: k8s_masters
+  become: yes
+  roles:
+    - kubernetes-controlplane
+
+- import_playbook: add_nodes.yml
+
+- name: install CNI
+  hosts: all
+  become: yes
+  roles:
+    - kubernetes-cni
+  tags:
+    - kubernetes-cni

@@ -1,0 +1,7 @@
+kubernetes_apt_key_url: 'https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+kubernetes_apt_repo_string: "deb http://apt.kubernetes.io/ {{ ansible_distribution_release | kube_debian_distro_version }} main"
+kubernetes_enable_cached_images: False
+kubernetes_cached_images: []
+kubernetes_yum_baseurl: 'https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64'
+kubernetes_yum_gpgkey: 'https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg'
+kubernetes_common_disable_swap: True

@@ -1,0 +1,12 @@
+---
+- hosts: all
+  gather_facts: false
+  become: yes
+  pre_tasks:
+  - name: install python
+    raw: bash -c "export DEBIAN_FRONTEND=noninteractive; if grep -qi debian /etc/os-release && [ ! -e /usr/bin/python ]; then apt -qqy update; apt install -qqy python python-pip; fi;"
+    register: output
+    changed_when: output.stdout != ""
+    retries: 3
+    delay: 3
+    until: output.rc == 0

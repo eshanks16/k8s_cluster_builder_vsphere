@@ -1,0 +1,6 @@
+.DS_Store
+*.csr
+*.key
+*secret.yaml
+key.pem
+*__pychace__

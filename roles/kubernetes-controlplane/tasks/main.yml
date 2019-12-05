@@ -1,0 +1,90 @@
+---
+- import_tasks: redhat.yml
+  when: ansible_os_family == "RedHat"
+
+- name: determine whether kubeadm needs to be run
+  stat:
+    path: /etc/kubernetes/manifests/kube-apiserver.yaml
+  register: kubeadm_apiserver_manifest
+
+- name: run kubeadm init on primary control plane node
+  shell: "/usr/bin/kubeadm init --config=/etc/kubernetes/kubeadm.conf --ignore-preflight-errors=all"
+  delegate_to: "{{ groups['k8s_master_primary']|first }}"
+  run_once: true
+  when: kubeadm_apiserver_manifest.stat.exists == False
+
+- name: slurp the ca certificate and key
+  slurp:
+    src: "/etc/kubernetes/{{ item }}"
+  with_items:
+    - pki/apiserver.crt
+    - pki/apiserver.key
+    - pki/apiserver-kubelet-client.crt
+    - pki/apiserver-kubelet-client.key
+    - pki/ca.crt
+    - pki/ca.key
+    - pki/front-proxy-ca.crt
+    - pki/front-proxy-ca.key
+    - pki/front-proxy-client.crt
+    - pki/front-proxy-client.key
+    - pki/sa.key
+    - pki/sa.pub
+  register: kube_pki
+  delegate_to: "{{ groups['k8s_master_primary']|first }}"
+  run_once: true
+
+- name: create kubernetes pki directory
+  file:
+    dest: /etc/kubernetes/pki/
+    state: directory
+    owner: root
+    group: root
+
+- name: add kube pki assets
+  no_log: True
+  copy:
+    dest: "{{ item.source }}"
+    content: "{{ item.content | b64decode }}"
+    owner: root
+    group: root
+    mode: 0700
+  with_items: "{{ kube_pki.results }}"
+  when: inventory_hostname != groups['k8s_master_primary']|first
+
+#Initialize the secondary control plane nodes
+- name: initialize secondary control plane nodes
+  command: "/usr/bin/kubeadm init --config=/etc/kubernetes/kubeadm.conf --ignore-preflight-errors=all"
+  when: kubeadm_apiserver_manifest.stat.exists == False and inventory_hostname != groups['k8s_master_primary']|first
+
+
+#Create KUBECONFIG info
+- name: create .kube directories in user's home
+  file:
+    path: "{{ item.home }}/.kube"
+    state: absent
+  with_items: "{{ kubernetes_users }}"
+
+- name: create .kube directories in user's home
+  file:
+    path: "{{ item.home }}/.kube"
+    state: directory
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+    mode: 0755
+  with_items: "{{ kubernetes_users }}"
+
+- name: setup the kubeconfig
+  copy:
+    remote_src: True
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ item.home }}/.kube/config"
+    owner: "{{ item.user }}"
+    group: "{{ item.group }}"
+    mode: 0600
+  with_items: "{{ kubernetes_users }}"
+
+- name: configure bash completion
+  lineinfile:
+    path: "{{ item.home }}/.bashrc"
+    line: "source <(kubectl completion bash)"
+  with_items: "{{ kubernetes_users }}"
