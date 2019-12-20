@@ -12,6 +12,7 @@
     sysctl_set: yes
     state: present
     reload: yes
+  when: container_runtime == "docker" 
 
 - name: ensure that the kubelet is running
   service:
@@ -102,11 +103,13 @@
   notify:
     - restart kubelet
 
+- name: Ensures var/lib/kubelet dir exists
+  file: path=/var/lib/kubelet state=directory
+
 - name: write kubelet configuration
   template:
     dest: /var/lib/kubelet/config.yaml
     src: var/lib/kubelet/config.yaml
-  when: kubernetes_common_kubelet_config | bool
 
 - name: flush handlers
   meta: flush_handlers

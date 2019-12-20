@@ -1,0 +1,40 @@
+---
+
+- name: install containerd dependencies
+  apt:
+    name: "{{ containerd_dep }}"
+    state: latest
+
+- name: Download containerd
+  unarchive:
+    src: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}.linux-amd64.tar.gz"
+    dest: /usr/local
+    remote_src: yes
+
+- name: Download runc
+  get_url:
+    url: "https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.amd64"
+    dest: /usr/local/sbin/runc
+    mode: '0755'
+
+- name: drop containerd service
+  template:
+    src: etc/systemd/system/containerd.service
+    dest: /etc/systemd/system/containerd.service
+  notify: restart containerd
+
+- name: drop crictl config
+  template:
+    src: etc/crictl.yaml
+    dest: /etc/crictl.yaml
+
+- name: create kubelet.service.d directory
+  file:
+    path: /etc/systemd/system/kubelet.service.d
+    state: directory
+    mode: '0755'
+
+- name: drop kubeletconfig 0-containerd.conf
+  template:
+    src: etc/systemd/system/kubelet.service.d/0-containerd.conf
+    dest: /etc/systemd/system/kubelet.service.d/0-containerd.conf

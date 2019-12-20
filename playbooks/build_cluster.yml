@@ -6,7 +6,7 @@
   become: yes
   roles: 
     - common
-    - docker
+    - container_runtime
     
 - name: etcd
   hosts: etcd

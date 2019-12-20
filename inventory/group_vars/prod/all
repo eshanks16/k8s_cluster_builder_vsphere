@@ -15,15 +15,15 @@ etcd_version: v3.2.18                               #etcd version to use
 cloud_provider: "vsphere" #aws or vsphere
 
 #vsphere cloud provider configuration items - required if cloud_provider=vsphere
-vs_user: "user@domain.local"                        #vCenter Username
-vs_password: "Password123"                          #vCenter Password for user
+vs_user: "kubeuser@domain.local"                        #vCenter Username
+vs_password: "password"                          #vCenter Password for user
 vs_port: "443"                                      #vCenter Port
 vs_insecure_flag: "1"                               #insecure certificates allowed=1
-vs_datacenters: "DC1"                               #vCenter Datacenter on which k8s node VMs are built
+vs_datacenters: "LABDC"                               #vCenter Datacenter on which k8s node VMs are built
 vs_server: "vcenter1.domain.local"                  #vCenter server FQDN
-vs_datacenter: "DC1"                                #vCenter DataCenter associated with the current vCenter Server above
+vs_datacenter: "LABDC"                                #vCenter DataCenter associated with the current vCenter Server above
 vs_default_datastore: "vsanDatastore"               #Datastore used for provisioning volumes from stroage classes
-vs_resourcepool_path: "myCluster/Resources"         #VMware Resource pool where kubernetes nodes will reside
+vs_resourcepool_path: "LABCluster/Resources"         #VMware Resource pool where kubernetes nodes will reside
 vs_folder: "kubernetes"                             #VM folder where kubernetes nodes will reside
 vs_scsicontrollertype: pvscsi                       #Kubernetes node scsi controller type
 vs_public_network: "vms"                            #portgroup for kubernetes nodes
@@ -34,9 +34,10 @@ kubeadm_version: 1.16.3
 kubernetes_full_version: '1.16.3-00'
 kubernetes_cni_plugin: calico                   #Available options: calico, flannel, canal
 kubernetes_cni_version: '0.7.5-00'  
-kubernetes_common_api_fqdn: api.domain.local   #Load Balancer URL - Must be pre-created with appropriate Health Checks
+kubernetes_common_api_fqdn: kube.domain.local   #Load Balancer URL - Must be pre-created with appropriate Health Checks
 kubernetes_common_api_ip: 10.10.50.170
 kubernetes_cluster_label: mycluster
+container_runtime: docker                  #options- containerd, docker, cri-o (CRI not yet implemented)
 
 #Common kubeadm configuration settings for all nodes
 #Enter or remove items below this line as needed
@@ -66,17 +67,23 @@ kubernetes_common_kubeadm_config:   #Do not remove this line
     etcd:
         external:
             endpoints: "{{ etcd_client_endpoints }}"
+            
     networking:
         podSubnet: "172.16.0.0/16"
         serviceSubnet: "192.168.0.0/16"
+
+
 
 #kubelet configuration options
 kubernetes_common_kubelet_extra_args: 
     cloud-provider: "{{ cloud_provider }}"
     cloud-config: "/etc/kubernetes/{{ cloud_provider }}.conf"
+    runtime-request-timeout: "15m" 
+    #container-runtime: "remote"         #remove for docker
+    #container-runtime-endpoint: "unix:///run/containerd/containerd.sock" #remove for docker
 kubernetes_common_kubelet_env_vars: {}
 kubernetes_common_kubelet_config: 
-    container-log-max-size: 10Mi
+    container-log-max-size: "10Mi"
 
 # Docker Daemon configuration
 docker_ce_daemon_options:
@@ -87,3 +94,4 @@ docker_ce_daemon_options:
         max-file: "7"
     storage-driver: overlay2
     storage-opts: [ "overlay2.override_kernel_check=true" ]
+    live-restore: true

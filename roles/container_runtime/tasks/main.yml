@@ -1,0 +1,28 @@
+---
+- import_tasks: docker_debian.yml
+  when: ansible_os_family == "Debian" and container_runtime == "docker"
+
+- import_tasks: docker_redhat.yml
+  when: ansible_os_family == "RedHat" and container_runtime == "docker"
+
+- import_tasks: containerd_debian.yml
+  when: ansible_os_family == "Debian" and container_runtime == "containerd"
+
+- name: create docker directory
+  file:
+    dest: /etc/docker
+    state: directory
+  when: container_runtime == "docker"
+
+- name: Configure additional engine options
+  copy:
+    content: "{{ docker_ce_daemon_options | to_nice_json }}"
+    dest: /etc/docker/daemon.json
+    mode: 0644
+  when: docker_ce_daemon_options is defined and container_runtime == "docker"
+
+- name: create a service.d directory for config
+  file:
+    dest: /etc/systemd/system/docker.service.d
+    state: directory
+  when: container_runtime == "docker"

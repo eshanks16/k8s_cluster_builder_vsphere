@@ -17,7 +17,7 @@
   become: yes
   roles:
     - role: common
-    - role: docker
+    - role: container_runtime
     - role: kubernetes
     - role: etcd
       when: False

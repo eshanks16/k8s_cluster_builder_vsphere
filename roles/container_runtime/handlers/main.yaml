@@ -1,0 +1,14 @@
+---
+- name: restart docker
+  systemd:
+    name: docker
+    daemon_reload: true
+    state: restarted
+  when: container_runtime == "docker"
+
+- name: restart containerd
+  systemd:
+    name: containerd
+    daemon_reload: true
+    state: restarted
+  when: container_runtime == "containerd"
