@@ -5,6 +5,8 @@
 - name: determine whether kubeadm needs to be run
   stat:
     path: /etc/kubernetes/manifests/kube-apiserver.yaml
+    get_checksum: False
+    get_mime: False
   register: kubeadm_apiserver_manifest
 
 - name: run kubeadm init on primary control plane node

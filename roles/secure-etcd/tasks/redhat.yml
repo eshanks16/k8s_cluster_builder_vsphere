@@ -1,4 +1,3 @@
----
 - name: add the kubernetes yum repo key
   yum_repository:
     name: kubernetes
@@ -11,9 +10,16 @@
   yum:
     allow_downgrade: True
     name:
-      - "kubelet-{{ kubernetes_full_version | kube_platform_version('redhat') }}"
-      - "kubeadm-{{ kubernetes_full_version | kube_platform_version('redhat') }}"
       - "kubectl-{{ kubernetes_full_version | kube_platform_version('redhat') }}"
-      - "kubernetes-cni-{{kubernetes_cni_version | kube_platform_version('redhat')}}"
+      - "kubeadm-{{ kubernetes_full_version | kube_platform_version('redhat') }}"
   retries: 5
   delay: 5
+
+- name: open etcd ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: True
+  with_items:
+  - "2379-2380/tcp"

@@ -1,15 +1,13 @@
 ---
-- name: check whether we have joined this node
-  shell: "/usr/bin/docker ps | /bin/grep kube-proxy"
-  register: kube_proxy_running
-  ignore_errors: True
-  when: container_runtime == "docker"
+- name: set cri command
+  set_fact:
+    cricmd: "crictl"
+  when: container_runtime == "containerd"
 
 - name: check whether we have joined this node
-  shell: "/usr/bin/crictl ps | /bin/grep kube-proxy"
+  shell: "/usr/bin/{{ cricmd }} ps | /bin/grep kube-proxy"
   register: kube_proxy_running
   ignore_errors: True
-  when: container_runtime == "containerd"
 
 - name: join nodes to masters by fqdn
   command: "/usr/bin/kubeadm join {{ kubernetes_common_api_fqdn }}:6443 --token='{{ hostvars[groups['k8s_master_primary'][0]]['generated_token']['stdout'] }}' --discovery-token-unsafe-skip-ca-verification --ignore-preflight-errors=all"

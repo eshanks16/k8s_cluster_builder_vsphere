@@ -19,6 +19,6 @@
     - role: common
     - role: container_runtime
     - role: kubernetes
-    - role: etcd
+    - role: secure-etcd
       when: False
     - role: kubernetes-workers

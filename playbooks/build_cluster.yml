@@ -12,7 +12,7 @@
   hosts: etcd
   become: yes
   roles:
-    - etcd
+    - secure-etcd
 
 - name: kubernetes
   hosts: all
