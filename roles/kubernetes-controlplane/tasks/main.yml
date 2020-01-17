@@ -2,6 +2,14 @@
 - import_tasks: redhat.yml
   when: ansible_os_family == "RedHat"
 
+- name: Ensures /etc/kubernetes/audit dir exists
+  file: path=/etc/kubernetes/audit state=directory
+
+- name: Set audit config
+  template:
+    dest: /etc/kubernetes/audit/audit.yaml
+    src: etc/kubernetes/audit/audit.yaml
+
 - name: determine whether kubeadm needs to be run
   stat:
     path: /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -10,27 +18,29 @@
   register: kubeadm_apiserver_manifest
 
 - name: run kubeadm init on primary control plane node
-  shell: "/usr/bin/kubeadm init --config=/etc/kubernetes/kubeadm.conf --ignore-preflight-errors=all"
+  shell: "/usr/bin/kubeadm init --config=/etc/kubernetes/kubeadm.conf --upload-certs --ignore-preflight-errors=all"
   delegate_to: "{{ groups['k8s_master_primary']|first }}"
   run_once: true
   when: kubeadm_apiserver_manifest.stat.exists == False
 
 - name: slurp the ca certificate and key
   slurp:
-    src: "/etc/kubernetes/{{ item }}"
+    src: "/etc/kubernetes/pki/{{ item }}"
   with_items:
-    - pki/apiserver.crt
-    - pki/apiserver.key
-    - pki/apiserver-kubelet-client.crt
-    - pki/apiserver-kubelet-client.key
-    - pki/ca.crt
-    - pki/ca.key
-    - pki/front-proxy-ca.crt
-    - pki/front-proxy-ca.key
-    - pki/front-proxy-client.crt
-    - pki/front-proxy-client.key
-    - pki/sa.key
-    - pki/sa.pub
+    - apiserver-etcd-client.crt
+    - apiserver-etcd-client.key
+    - apiserver.crt
+    - apiserver.key
+    - apiserver-kubelet-client.crt
+    - apiserver-kubelet-client.key
+    - ca.crt
+    - ca.key
+    - front-proxy-ca.crt
+    - front-proxy-ca.key
+    - front-proxy-client.crt
+    - front-proxy-client.key
+    - sa.key
+    - sa.pub
   register: kube_pki
   delegate_to: "{{ groups['k8s_master_primary']|first }}"
   run_once: true
@@ -49,7 +59,7 @@
     content: "{{ item.content | b64decode }}"
     owner: root
     group: root
-    mode: 0700
+    mode: 0744
   with_items: "{{ kube_pki.results }}"
   when: inventory_hostname != groups['k8s_master_primary']|first
 

@@ -1,10 +1,11 @@
 ---
 - name: Update vSphere config file
+  no_log: true
   ini_file:
     path: /etc/kubernetes/{{cloud_provider}}.conf
     section: "{{ item.section }}"
     option: "{{ item.option }}"
-    value: "{{ item.value }}"
+    value: "{{ item.value }}"  
   with_items:
     - { section: "Global", option: user, value: '"{{ vs_user }}"' }
     - { section: "Global", option: password, value: '"{{ vs_password }}"' }
