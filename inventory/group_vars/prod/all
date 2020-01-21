@@ -36,21 +36,30 @@ kubernetes_cni_plugin: calico                   #Available options: calico, flan
 kubernetes_cni_version: '0.7.5-00'  
 kubernetes_common_api_fqdn: kube.domain.local   #Load Balancer URL - Must be pre-created with appropriate Health Checks
 kubernetes_common_api_ip: 10.10.50.170
+kubernetes_common_api_port: "443"           #kubernetes_common_api_port: "443"
 kubernetes_cluster_label: mycluster
 container_runtime: docker                  #options- containerd, docker, cri-o (CRI not yet implemented)
+audit_log_location: /etc/kubernetes/audit   #directory to store audit logs
+audit_log_age: "30"                           #maximum audit log age in days
+audit_log_max_size: "200"
 
 #Common kubeadm configuration settings for all nodes
 #Enter or remove items below this line as needed
 kubernetes_common_kubeadm_config:   #Do not remove this line
-    apiVersion: kubeadm.k8s.io/v1beta1                                      
+    apiVersion: kubeadm.k8s.io/v1beta2                                      
     kind: ClusterConfiguration
     kubernetesVersion: "{{kubernetes_version }}"
-    controlPlaneEndpoint: "{{ kubernetes_common_api_fqdn }}"                #external load balancer DNS name for VIP
+    controlPlaneEndpoint: "{{ kubernetes_common_api_fqdn }}:{{ kubernetes_common_api_port }}"                #external load balancer DNS name for VIP
     apiServer:
         ExtraArgs:
-            "endpoint-reconciler-type": "lease"
-            "cloud-provider": "{{ cloud_provider }}"                        #for vSphere Cloud Provider Config
-            "cloud-config": "/etc/kubernetes/{{ cloud_provider }}.conf"     #for vSphere Cloud Provider Config
+            secure-port : "{{ kubernetes_common_api_port }}"
+            audit-policy-file : "/etc/kubernetes/audit/audit.yaml"
+            audit-log-path : "{{ audit_log_location }}/audit.log"
+            audit-log-maxage : "{{ audit_log_age }}"
+            audit-log-maxsize : "{{ audit_log_max_size }}"
+            endpoint-reconciler-type: "lease"
+            cloud-provider: "{{ cloud_provider }}"                        #for vSphere Cloud Provider Config
+            cloud-config: "/etc/kubernetes/{{ cloud_provider }}.conf"     #for vSphere Cloud Provider Config
         extraVolumes:
         -   name: "cloud"                                                   #for vSphere Cloud Provider Config
             hostPath: "/etc/kubernetes/{{ cloud_provider }}.conf"           #for vSphere Cloud Provider Config
@@ -67,7 +76,9 @@ kubernetes_common_kubeadm_config:   #Do not remove this line
     etcd:
         external:
             endpoints: "{{ etcd_client_endpoints }}"
-            
+            caFile: "/etc/kubernetes/pki/etcd/ca.crt"
+            certFile: "/etc/kubernetes/pki/apiserver-etcd-client.crt"
+            keyFile: "/etc/kubernetes/pki/apiserver-etcd-client.key"
     networking:
         podSubnet: "172.16.0.0/16"
         serviceSubnet: "192.168.0.0/16"
