@@ -1,62 +1,71 @@
 ---
 #User Info for installations
 kubernetes_users:
-- { user: kubeuser, group: kubeuser, home: /home/kubeuser }         #User kubeadm will run under
+#- { user: root, group: wheel, home: /root }        #User kubeadm will run under
+- { user: eshanks, group: eshanks, home: /home/eshanks}
 
 #Instance Configurations 
 docker_debian_version: '5:18.09.5~3-0~ubuntu-{{ ansible_distribution_release | lower }}'    #version of docker for debian installations
-docker_redhat_version: '18.09.7-3.el7'              #version of docker to install on redhat installations
+docker_redhat_version: '19.03.5-3.el7'              #version of docker to install on redhat installations
+use_firewall: true                                 #if set to false, RHEL firewall will be disabled
 
 #etcd configuration items
-etcd_interface: ens160                              #nic etcd is advertised on
-etcd_version: v3.2.18                               #etcd version to use
+etcd_interface: ens192                              #nic etcd is advertised on
+etcd_version: v3.4.3                               #etcd version to use
 
 #Cloud Provider
 cloud_provider: "vsphere" #aws or vsphere
 
 #vsphere cloud provider configuration items - required if cloud_provider=vsphere
-vs_user: "kubeuser@domain.local"                        #vCenter Username
-vs_password: "password"                          #vCenter Password for user
+vs_user: "user@domain.local"                     #vCenter Username
+vs_password: "MYPASSWORD123"                            #vCenter Password for user
 vs_port: "443"                                      #vCenter Port
 vs_insecure_flag: "1"                               #insecure certificates allowed=1
 vs_datacenters: "LABDC"                               #vCenter Datacenter on which k8s node VMs are built
-vs_server: "vcenter1.domain.local"                  #vCenter server FQDN
+vs_server: "vcenter.domain.local"                  #vCenter server FQDN
 vs_datacenter: "LABDC"                                #vCenter DataCenter associated with the current vCenter Server above
 vs_default_datastore: "vsanDatastore"               #Datastore used for provisioning volumes from stroage classes
-vs_resourcepool_path: "LABCluster/Resources"         #VMware Resource pool where kubernetes nodes will reside
+vs_resourcepool_path: "Cluster/Resources"         #VMware Resource pool where kubernetes nodes will reside
 vs_folder: "kubernetes"                             #VM folder where kubernetes nodes will reside
 vs_scsicontrollertype: pvscsi                       #Kubernetes node scsi controller type
 vs_public_network: "vms"                            #portgroup for kubernetes nodes
 
 #Kubernetes Configuration Options
-kubernetes_version: v1.16.3 
-kubeadm_version: 1.16.3
-kubernetes_full_version: '1.16.3-00'
-kubernetes_cni_plugin: calico                   #Available options: calico, flannel, canal
+kubernetes_version: v1.17.2 
+kubeadm_version: 1.17.2
+kubernetes_full_version: '1.17.2-00'
+kubernetes_cni_plugin: calico                       #Available options: calico, flannel, canal
 kubernetes_cni_version: '0.7.5-00'  
-kubernetes_common_api_fqdn: kube.domain.local   #Load Balancer URL - Must be pre-created with appropriate Health Checks
+kubernetes_common_api_fqdn: VIP.domain.local       #Load Balancer URL - Must be pre-created with appropriate Health Checks
 kubernetes_common_api_ip: 10.10.50.170
-kubernetes_common_api_port: "443"           #kubernetes_common_api_port: "443"
+kubernetes_common_api_port: "6443"                  #Default API Server port is 6443. Change that here.
 kubernetes_cluster_label: mycluster
-container_runtime: docker                  #options- containerd, docker, cri-o (CRI not yet implemented)
-audit_log_location: /etc/kubernetes/audit   #directory to store audit logs
-audit_log_age: "30"                           #maximum audit log age in days
-audit_log_max_size: "200"
+container_runtime: docker                           #options- containerd, docker, cri-o (CRI not yet implemented)
+audit_log_location: /etc/kubernetes/audit           #directory to store audit logs
+audit_log_age: "30"                                 #maximum audit log age in days
+audit_log_max_size: "200"                           #maximum audit log size in MB
 
 #Common kubeadm configuration settings for all nodes
 #Enter or remove items below this line as needed
+kubernetes_common_kubeadm_initconfig:
+    apiVersion: kubeadm.k8s.io/v1beta2
+    kind: InitConfiguration
+    localAPIEndpoint:
+        bindPort: "{{ kubernetes_common_api_port | int }}"
 kubernetes_common_kubeadm_config:   #Do not remove this line
     apiVersion: kubeadm.k8s.io/v1beta2                                      
     kind: ClusterConfiguration
-    kubernetesVersion: "{{kubernetes_version }}"
+    kubernetesVersion: '{{kubernetes_version }}'
     controlPlaneEndpoint: "{{ kubernetes_common_api_fqdn }}:{{ kubernetes_common_api_port }}"                #external load balancer DNS name for VIP
     apiServer:
-        ExtraArgs:
+        extraArgs:
             secure-port : "{{ kubernetes_common_api_port }}"
+            bind-address : "0.0.0.0"
             audit-policy-file : "/etc/kubernetes/audit/audit.yaml"
             audit-log-path : "{{ audit_log_location }}/audit.log"
             audit-log-maxage : "{{ audit_log_age }}"
             audit-log-maxsize : "{{ audit_log_max_size }}"
+            audit-log-maxbackup : "5"
             endpoint-reconciler-type: "lease"
             cloud-provider: "{{ cloud_provider }}"                        #for vSphere Cloud Provider Config
             cloud-config: "/etc/kubernetes/{{ cloud_provider }}.conf"     #for vSphere Cloud Provider Config
@@ -64,6 +73,9 @@ kubernetes_common_kubeadm_config:   #Do not remove this line
         -   name: "cloud"                                                   #for vSphere Cloud Provider Config
             hostPath: "/etc/kubernetes/{{ cloud_provider }}.conf"           #for vSphere Cloud Provider Config
             mountPath: "/etc/kubernetes/{{ cloud_provider }}.conf"          #for vSphere Cloud Provider Config
+        -   name: "audit"
+            hostPath: "/etc/kubernetes/audit"
+            mountPath: "/etc/kubernetes/audit"
     controllerManager:
         extraArgs:
             "cloud-provider": "{{ cloud_provider }}"                        #for vSphere Cloud Provider Config
@@ -80,16 +92,14 @@ kubernetes_common_kubeadm_config:   #Do not remove this line
             certFile: "/etc/kubernetes/pki/apiserver-etcd-client.crt"
             keyFile: "/etc/kubernetes/pki/apiserver-etcd-client.key"
     networking:
-        podSubnet: "172.16.0.0/16"
-        serviceSubnet: "192.168.0.0/16"
-
-
+        podSubnet: "192.168.0.0/16"
 
 #kubelet configuration options
 kubernetes_common_kubelet_extra_args: 
     cloud-provider: "{{ cloud_provider }}"
     cloud-config: "/etc/kubernetes/{{ cloud_provider }}.conf"
     runtime-request-timeout: "15m" 
+    #node-labels: zone={{ inventory_hostname}}
     #container-runtime: "remote"         #remove for docker
     #container-runtime-endpoint: "unix:///run/containerd/containerd.sock" #remove for docker
 kubernetes_common_kubelet_env_vars: {}

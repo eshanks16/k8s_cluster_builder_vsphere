@@ -1,10 +1,4 @@
 ---
-- import_tasks: debian.yml
-  when: ansible_os_family == "Debian"
-
-- import_tasks: redhat.yml
-  when: ansible_os_family == "RedHat"
-
 - name: set ipv4 routing
   sysctl:
     name: net.bridge.bridge-nf-call-iptables
@@ -13,6 +7,21 @@
     state: present
     reload: yes
   when: container_runtime == "docker" 
+
+- name: set ipv6 routing
+  sysctl:
+    name: net.bridge.bridge-nf-call-ip6tables
+    value: "1"
+    sysctl_set: yes
+    state: present
+    reload: yes
+  when: container_runtime == "docker" 
+  
+- import_tasks: debian.yml
+  when: ansible_os_family == "Debian"
+
+- import_tasks: redhat.yml
+  when: ansible_os_family == "RedHat"
 
 - name: ensure that the kubelet is running
   service:
@@ -55,7 +64,8 @@
   systemd:
     name: firewalld
     state: started
-  when: ansible_os_family == "RedHat"
+  when: ansible_os_family == "RedHat" and use_firewall
+
 
 - name: open kubelet ports
   firewalld:
@@ -66,7 +76,9 @@
   with_items:
   - "30000-32767/tcp"
   - "10250-10255/tcp"
-  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+  when: 
+  - ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux' 
+  - use_firewall
 
 - name: drop kubeadm template
   template:

@@ -1,4 +1,22 @@
 ---
+- name: open bgp ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: True
+  with_items:
+  - "179/tcp"
+  when: 
+  - use_firewall 
+  - ansible_os_family == "RedHat"
+
+- name: Configure Network Manager
+  template:
+    src: etc/NetworkManager/conf.d/calico.conf
+    dest: /etc/NetworkManager/conf.d/calico.conf
+  when: ansible_os_family == "RedHat"
+
 - name: pull manifest and apply any modifications
   run_once: False
   delegate_to: "{{ groups['k8s_master_primary'][0] }}"

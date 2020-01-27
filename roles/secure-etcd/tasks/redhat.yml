@@ -23,3 +23,4 @@
     immediate: True
   with_items:
   - "2379-2380/tcp"
+  when: use_firewall

@@ -28,3 +28,11 @@
     daemon_reload: True
     enabled: yes
     state: started
+  when: use_firewall
+
+- name: ensure firewalld is stopped
+  systemd:
+    name: firewalld
+    enabled: no
+    state: stopped
+  when: not use_firewall
