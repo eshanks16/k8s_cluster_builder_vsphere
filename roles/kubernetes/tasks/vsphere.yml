@@ -19,3 +19,5 @@
     - { section: "Workspace", option: folder, value: '"{{ vs_folder }}"' }
     - { section: "Disk", option: scsicontrollertype, value: '"{{ vs_scsicontrollertype }}"' }
     - { section: "Network", option: public-network, value: '"{{ vs_public_network }}"' }
+    - { section: "Labels", option: region, value: '"{{ vs_region_tag }}"' }
+    - { section: "Labels", option: zone, value: '"{{ vs_zone_tag }}"' }
