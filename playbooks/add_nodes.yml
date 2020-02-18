@@ -3,14 +3,14 @@
   import_playbook: ./pre.yml
 
 - name: create a kubeadm token
-  hosts: k8s_master_primary
+  hosts: k8s_controller_primary
   become: yes
   tasks:
     - name: generate a kubeadm token
       command: "/usr/bin/kubeadm token create --config /etc/kubernetes/kubeadm.conf --kubeconfig /etc/kubernetes/admin.conf"
       register: generated_token
       run_once: True
-      delegate_to: "{{ groups['k8s_master_primary']|first }}"
+      delegate_to: "{{ groups['k8s_controller_primary']|first }}"
 
 - name: install kubernetes prerequisites
   hosts: k8s_workers

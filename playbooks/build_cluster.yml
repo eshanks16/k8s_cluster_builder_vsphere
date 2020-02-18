@@ -21,7 +21,7 @@
     - kubernetes
 
 - name: create kubernetes control plane nodes
-  hosts: k8s_masters
+  hosts: k8s_controllers
   become: yes
   roles:
     - kubernetes-controlplane

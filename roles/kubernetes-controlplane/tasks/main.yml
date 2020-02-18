@@ -19,7 +19,7 @@
 
 - name: run kubeadm init on primary control plane node
   shell: "/usr/bin/kubeadm init --config=/etc/kubernetes/kubeadm.conf --upload-certs --ignore-preflight-errors=all"
-  delegate_to: "{{ groups['k8s_master_primary']|first }}"
+  delegate_to: "{{ groups['k8s_controller_primary']|first }}"
   run_once: true
   when: kubeadm_apiserver_manifest.stat.exists == False
 
@@ -42,7 +42,7 @@
     - sa.key
     - sa.pub
   register: kube_pki
-  delegate_to: "{{ groups['k8s_master_primary']|first }}"
+  delegate_to: "{{ groups['k8s_controller_primary']|first }}"
   run_once: true
 
 - name: create kubernetes pki directory
@@ -61,12 +61,12 @@
     group: root
     mode: 0744
   with_items: "{{ kube_pki.results }}"
-  when: inventory_hostname != groups['k8s_master_primary']|first
+  when: inventory_hostname != groups['k8s_controller_primary']|first
 
 #Initialize the secondary control plane nodes
 - name: initialize secondary control plane nodes
   command: "/usr/bin/kubeadm init --config=/etc/kubernetes/kubeadm.conf --ignore-preflight-errors=all"
-  when: kubeadm_apiserver_manifest.stat.exists == False and inventory_hostname != groups['k8s_master_primary']|first
+  when: kubeadm_apiserver_manifest.stat.exists == False and inventory_hostname != groups['k8s_controller_primary']|first
 
 
 #Create KUBECONFIG info
