@@ -4,3 +4,4 @@
 *secret.yaml
 key.pem
 *__pychace__
+*.pyc
